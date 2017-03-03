@@ -149,7 +149,7 @@ describe('arm', function () {
 
     describe('vm', function () {
       it('should enable encryption on the vm', function (done) {
-        var cmd = util.format('vm enable-disk-encryption --resource-group %s --name %s --aad-client-id %s --aad-client-secret %s --disk-encryption-key-vault-url %s --disk-encryption-key-vault-id %s --quiet --json', groupName, vmName, adServicePrincipalAppId, adAppClientSecret, diskEncryptionKeyVaultUrl, diskEncryptionKeyVaultId).split(' ');
+        var cmd = util.format('vm enable-disk-encryption --resource-group %s --name %s --aad-client-id %s --aad-client-secret %s --disk-encryption-key-vault-url %s --disk-encryption-key-vault-id %s --volume-type All --quiet --json', groupName, vmName, adServicePrincipalAppId, adAppClientSecret, diskEncryptionKeyVaultUrl, diskEncryptionKeyVaultId).split(' ');
         testUtils.executeCommand(suite, retry, cmd, function (result) {
           result.exitStatus.should.equal(0);
           done();
