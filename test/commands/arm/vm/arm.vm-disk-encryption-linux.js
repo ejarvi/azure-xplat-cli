@@ -52,7 +52,7 @@ var testLocation,
   vmName,
   adminUserPrefix = 'xptadmin',
   adminUsername,
-  imageUrn = 'canonical:UbuntuServer:16.04.0-LTS:16.04.201609220',
+  imageUrn = 'Canonical:UbuntuServer:16.04.0-LTS:latest',
   vaultName = 'xplatTestKV',
 
   adAppName,
