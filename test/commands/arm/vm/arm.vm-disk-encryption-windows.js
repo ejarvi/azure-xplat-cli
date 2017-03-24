@@ -32,7 +32,7 @@ var requiredEnvironment = [{
   defaultValue: 'westus'
 }, {
   name: 'ADE_ADAPP_NAME',
-  defaultValue: ''
+  defaultValue: 'xplatTestAdApp'
 }, {
   name: 'ADE_ADAPP_SECRET',
   defaultValue: ''
@@ -45,9 +45,6 @@ var requiredEnvironment = [{
 }, {
   name: 'ADE_KV_URL',
   defaultValue: ''
-}, {
-  name: 'SSHCERT',
-  defaultValue: 'test/myCert.pem'
 }];
 
 var testLocation,
@@ -58,7 +55,8 @@ var testLocation,
   vmName,
   adminUserPrefix = 'xptadmin',
   adminUsername,
-  imageUrn = 'Canonical:UbuntuServer:16.04.0-LTS:latest',
+  adminPassword,
+  imageUrn = 'MicrosoftWindowsServer:WindowsServer:2012-R2-Datacenter:latest',
 
   adAppName,
   adAppClientSecret,
@@ -66,8 +64,7 @@ var testLocation,
 
   subscriptionId,
   diskEncryptionKeyVaultId,
-  diskEncryptionKeyVaultUrl,
-  sshPublicKeyFile;
+  diskEncryptionKeyVaultUrl;
 
 describe('arm', function () {
   describe('compute', function () {
@@ -81,15 +78,15 @@ describe('arm', function () {
         testLocation = process.env.AZURE_VM_TEST_LOCATION;
         groupName = suite.generateId(groupPrefix, null);
         vmName = suite.isMocked ? vmName : suite.generateId(vmPrefix, null);
-        adminUsername = suite.generateId(adminUserPrefix, null);
-        sshPublicKeyFile = process.env.SSHCERT;
+        adminUsername = suite.generateId(adminUserPrefix, null);                        
+        adminPassword = 'aA1^' + Math.random().toString(36).slice(-14);
 
         // active directory (precreated to facilitate automation from service principal context)
         adAppName = process.env.ADE_ADAPP_NAME;
         adAppClientSecret = process.env.ADE_ADAPP_SECRET;
         adServicePrincipalAppId = process.env.ADE_ADSP_APPID;
 
-        // key vault
+        // key vault 
         diskEncryptionKeyVaultId = process.env.ADE_KV_ID;
         diskEncryptionKeyVaultUrl = process.env.ADE_KV_URL;
 
@@ -124,7 +121,7 @@ describe('arm', function () {
       suite.execute('group create --name %s --location %s --json', groupName, testLocation, function (result) {
         result.exitStatus.should.equal(0);
         // quick create vm within the resource group 
-        suite.execute('vm quick-create -vv --resource-group %s --name %s --admin-username %s --location %s --os-type Linux --image-urn %s --ssh-publickey-file %s', groupName, vmName, adminUsername, testLocation, imageUrn, sshPublicKeyFile, function (result) {
+        suite.execute('vm quick-create -vv --resource-group %s --name %s --admin-username %s --admin-password %s --location %s --os-type Windows --image-urn %s', groupName, vmName, adminUsername, adminPassword, testLocation, imageUrn, function (result) {
           result.exitStatus.should.equal(0);
           done();
         });
