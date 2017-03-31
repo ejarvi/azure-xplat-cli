@@ -48,7 +48,7 @@ var requiredEnvironment = [{
 }];
 
 var testLocation,
-  testprefix = 'arm-cli-vm-disk-encryption-windows',
+  testprefix = 'arm-cli-vm-disk-encryption-windows-cs-stop-start',
   groupPrefix = 'xplatTestRG',
   groupName,
   vmPrefix = 'xplatTestVM',
@@ -133,27 +133,46 @@ describe('arm', function () {
     }
 
     describe('vm', function () {
-      it('should VmQuickCreateWindows-EncryptUsingClientSecret-GetStatusEncrypted', function (done) {
+      it('should VmQuickCreateWindows-EncryptUsingClientSecret-GetStatusEncrypted-VmStop-VmStart-GetStatusEncrypted', function (done) {
         this.timeout(vmTest.timeoutLarge * 10);
-        // quick create vm
+        // quick create windows vm
         var cmd = util.format('vm quick-create -vv --resource-group %s --name %s --admin-username %s --admin-password %s --location %s --os-type Windows --image-urn %s', groupName, vmName, adminUsername, adminPassword, testLocation, imageUrn).split(' ');
         testUtils.executeCommand(suite, retry, cmd, function(result) {
           result.exitStatus.should.equal(0);
 
-          // encrypt os drive 
+          // encrypt using client secret
           var cmd = util.format('vm enable-disk-encryption --resource-group %s --name %s --aad-client-id %s --aad-client-secret %s --disk-encryption-key-vault-url %s --disk-encryption-key-vault-id %s --volume-type All --quiet --json', groupName, vmName, adServicePrincipalAppId, adAppClientSecret,diskEncryptionKeyVaultUrl, diskEncryptionKeyVaultId).split(' ');
           testUtils.executeCommand(suite, retry, cmd, function(result) {
             result.exitStatus.should.equal(0);
 
-            // get status 
+            // get status encrypted
             var cmd = util.format('vm show-disk-encryption-status --resource-group %s --name %s --subscription %s --json', groupName, vmName, subscriptionId).split(' ');
             testUtils.executeCommand(suite, retry, cmd, function(result) {
               result.exitStatus.should.equal(0);
               should(result.text.toLowerCase().indexOf('encrypted') > -1).ok;
-              done();
+              
+              // vm stop
+              var cmd = util.format('vm stop --resource-group %s --name %s --subscription %s --json', groupName, vmName, subscriptionId).split(' ');
+              testUtils.executeCommand(suite, retry, cmd, function(result) {
+                result.exitStatus.should.equal(0);
+
+                // vm start
+                var cmd = util.format('vm start --resource-group %s --name %s --subscription %s --json', groupName, vmName, subscriptionId).split(' ');
+                testUtils.executeCommand(suite, retry, cmd, function(result) {
+                  result.exitStatus.should.equal(0);
+
+                  // get status encrypted
+                  var cmd = util.format('vm show-disk-encryption-status --resource-group %s --name %s --subscription %s --json', groupName, vmName, subscriptionId).split(' ');
+                  testUtils.executeCommand(suite, retry, cmd, function(result) {
+                    result.exitStatus.should.equal(0);
+                    should(result.text.toLowerCase().indexOf('encrypted') > -1).ok;              
+                    done();
+                  });
+                });
+              });
             });
           });
-        });
+        });                   
       });
     });
   });

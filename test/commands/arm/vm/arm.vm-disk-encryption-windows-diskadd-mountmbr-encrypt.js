@@ -48,7 +48,7 @@ var requiredEnvironment = [{
 }];
 
 var testLocation,
-  testprefix = 'arm-cli-vm-disk-encryption-windows',
+  testprefix = 'arm-cli-vm-disk-encryption-windows-diskadd-mountmbr-encrypt',
   groupPrefix = 'xplatTestRG',
   groupName,
   vmPrefix = 'xplatTestVM',
@@ -133,28 +133,41 @@ describe('arm', function () {
     }
 
     describe('vm', function () {
-      it('should VmQuickCreateWindows-EncryptUsingClientSecret-GetStatusEncrypted', function (done) {
+      it('should VmQuickCreateWindows-DiskAdd-MountMbr-EncryptUsingClientSecret-GetStatusEncrypted', function (done) {
         this.timeout(vmTest.timeoutLarge * 10);
-        // quick create vm
+        // quick create windows vm
         var cmd = util.format('vm quick-create -vv --resource-group %s --name %s --admin-username %s --admin-password %s --location %s --os-type Windows --image-urn %s', groupName, vmName, adminUsername, adminPassword, testLocation, imageUrn).split(' ');
         testUtils.executeCommand(suite, retry, cmd, function(result) {
-          result.exitStatus.should.equal(0);
-
-          // encrypt os drive 
-          var cmd = util.format('vm enable-disk-encryption --resource-group %s --name %s --aad-client-id %s --aad-client-secret %s --disk-encryption-key-vault-url %s --disk-encryption-key-vault-id %s --volume-type All --quiet --json', groupName, vmName, adServicePrincipalAppId, adAppClientSecret,diskEncryptionKeyVaultUrl, diskEncryptionKeyVaultId).split(' ');
-          testUtils.executeCommand(suite, retry, cmd, function(result) {
             result.exitStatus.should.equal(0);
 
-            // get status 
-            var cmd = util.format('vm show-disk-encryption-status --resource-group %s --name %s --subscription %s --json', groupName, vmName, subscriptionId).split(' ');
+            // add data disk
+            var cmd = util.format('vm disk attach-new --resource-group %s --vm-name %s --size-in-gb 100 --vhd-name AdeTestDisk --size-in-gb 100 --subscription %s --json', groupName, vmName, subscriptionId).split(' ');
             testUtils.executeCommand(suite, retry, cmd, function(result) {
-              result.exitStatus.should.equal(0);
-              should(result.text.toLowerCase().indexOf('encrypted') > -1).ok;
-              done();
+                result.exitStatus.should.equal(0);
+
+                // mount as mbr partition 
+                var csePublicConfig = '{"fileUris":["https://adetestsa.blob.core.windows.net/scripts/FormatMBRDisk.ps1"],"commandToExecute":".\\FormatMBRDisk.ps1"}';
+                var cmd = util.format('vm extension set --resource-group %s --vm-name %s --name CustomScript --publisher-name Microsoft.Azure.Extensions --version 2.0 --auto-upgrade-minor-version --public-config %s', groupName, vmName, csePublicConfig).split(' ');
+                testUtils.executeCommand(suite, retry, cmd, function(result) {
+                    result.exitStatus.should.equal(0);
+
+                    // encrypt using client secret
+                    var cmd = util.format('vm enable-disk-encryption --resource-group %s --name %s --aad-client-id %s --aad-client-secret %s --disk-encryption-key-vault-url %s --disk-encryption-key-vault-id %s --volume-type All --quiet --json', groupName, vmName, adServicePrincipalAppId, adAppClientSecret,diskEncryptionKeyVaultUrl, diskEncryptionKeyVaultId).split(' ');
+                    testUtils.executeCommand(suite, retry, cmd, function(result) {
+                        result.exitStatus.should.equal(0);
+
+                        // get status encrypted
+                        var cmd = util.format('vm show-disk-encryption-status --resource-group %s --name %s --subscription %s --json', groupName, vmName, subscriptionId).split(' ');
+                        testUtils.executeCommand(suite, retry, cmd, function(result) {
+                            result.exitStatus.should.equal(0);
+                            should(result.text.toLowerCase().indexOf('encrypted') > -1).ok;              
+                            done();
+                        });
+                    });
+                });
             });
-          });
         });
       });
-    });
+    });  
   });
 });

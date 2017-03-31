@@ -45,10 +45,16 @@ var requiredEnvironment = [{
 }, {
   name: 'ADE_KV_URL',
   defaultValue: ''
+}, { 
+  name: 'ADE_KV_CERT_SID',
+  defaultValue: ''
+}, { 
+  name: 'ADE_KV_CERT_THUMB',
+  defaultValue: ''
 }];
 
 var testLocation,
-  testprefix = 'arm-cli-vm-disk-encryption-windows',
+  testprefix = 'arm-cli-vm-disk-encryption-windows-cc-decrypt',
   groupPrefix = 'xplatTestRG',
   groupName,
   vmPrefix = 'xplatTestVM',
@@ -63,6 +69,8 @@ var testLocation,
   adServicePrincipalAppId,
 
   subscriptionId,
+  clientCertificateUrl,
+  clientCertificateThumbprint,
   diskEncryptionKeyVaultId,
   diskEncryptionKeyVaultUrl;
 
@@ -88,6 +96,8 @@ describe('arm', function () {
         adServicePrincipalAppId = process.env.ADE_ADSP_APPID;
 
         // key vault 
+        clientCertificateUrl = process.env.ADE_KV_CERT_SID;
+        clientCertificateThumbprint = process.env.ADE_KV_CERT_THUMB;
         diskEncryptionKeyVaultId = process.env.ADE_KV_ID;
         diskEncryptionKeyVaultUrl = process.env.ADE_KV_URL;
 
@@ -133,27 +143,39 @@ describe('arm', function () {
     }
 
     describe('vm', function () {
-      it('should VmQuickCreateWindows-EncryptUsingClientSecret-GetStatusEncrypted', function (done) {
+      it('should VmQuickCreateWindows-EncryptUsingClientCertificate-GetStatusEncrypted-Decrypt', function (done) {
         this.timeout(vmTest.timeoutLarge * 10);
-        // quick create vm
+        // quick create windows vm
         var cmd = util.format('vm quick-create -vv --resource-group %s --name %s --admin-username %s --admin-password %s --location %s --os-type Windows --image-urn %s', groupName, vmName, adminUsername, adminPassword, testLocation, imageUrn).split(' ');
         testUtils.executeCommand(suite, retry, cmd, function(result) {
-          result.exitStatus.should.equal(0);
-
-          // encrypt os drive 
-          var cmd = util.format('vm enable-disk-encryption --resource-group %s --name %s --aad-client-id %s --aad-client-secret %s --disk-encryption-key-vault-url %s --disk-encryption-key-vault-id %s --volume-type All --quiet --json', groupName, vmName, adServicePrincipalAppId, adAppClientSecret,diskEncryptionKeyVaultUrl, diskEncryptionKeyVaultId).split(' ');
-          testUtils.executeCommand(suite, retry, cmd, function(result) {
             result.exitStatus.should.equal(0);
 
-            // get status 
-            var cmd = util.format('vm show-disk-encryption-status --resource-group %s --name %s --subscription %s --json', groupName, vmName, subscriptionId).split(' ');
+            // deploy certificate to vm 
+            var cmd = util.format('vm secret add --resource-group %s --name %s --source-vault-id %s --certificate-url %s --certificate-store My --subscription %s', groupName, vmName, diskEncryptionKeyVaultId, clientCertificateUrl, subscriptionId).split(' ');
             testUtils.executeCommand(suite, retry, cmd, function(result) {
-              result.exitStatus.should.equal(0);
-              should(result.text.toLowerCase().indexOf('encrypted') > -1).ok;
-              done();
+                result.exitStatus.should.equal(0);
+
+                // encrypt using client certificate
+                var cmd = util.format('vm enable-disk-encryption --resource-group %s --name %s --aad-client-id %s --aad-client-cert-thumbprint %s --disk-encryption-key-vault-url %s --disk-encryption-key-vault-id %s --volume-type All --quiet --json', groupName, vmName, adServicePrincipalAppId, clientCertificateThumbprint, diskEncryptionKeyVaultUrl, diskEncryptionKeyVaultId).split(' ');
+                testUtils.executeCommand(suite, retry, cmd, function(result) {
+                    result.exitStatus.should.equal(0);
+
+                    // get status encrypted
+                    var cmd = util.format('vm show-disk-encryption-status --resource-group %s --name %s --subscription %s --json', groupName, vmName, subscriptionId).split(' ');
+                    testUtils.executeCommand(suite, retry, cmd, function(result) {
+                        result.exitStatus.should.equal(0);
+                        should(result.text.toLowerCase().indexOf('encrypted') > -1).ok;
+                    
+                        // disable encryption
+                        var cmd = util.format('vm disable-disk-encryption --resource-group %s --name %s --subscription %s --volume-type All --quiet --json', groupName, vmName, subscriptionId).split(' ');
+                        testUtils.executeCommand(suite, retry, cmd, function(result) {
+                            result.exitStatus.should.equal(0);      
+                            done();
+                        });
+                    });
+                });
             });
-          });
-        });
+        });                   
       });
     });
   });

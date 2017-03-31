@@ -45,10 +45,22 @@ var requiredEnvironment = [{
 }, {
   name: 'ADE_KV_URL',
   defaultValue: ''
+}, {
+  name: 'ADE_KV_NAME',
+  defaultValue: ''
+}, {
+  name: 'ADE_RG_NAME',
+  defaultValue: ''
+}, { 
+  name: 'ADE_KV_CERT_SID',
+  defaultValue: ''
+}, { 
+  name: 'ADE_KV_CERT_THUMB',
+  defaultValue: ''
 }];
 
 var testLocation,
-  testprefix = 'arm-cli-vm-disk-encryption-windows',
+  testprefix = 'arm-cli-vm-disk-encryption-windows-cs-template',
   groupPrefix = 'xplatTestRG',
   groupName,
   vmPrefix = 'xplatTestVM',
@@ -63,6 +75,10 @@ var testLocation,
   adServicePrincipalAppId,
 
   subscriptionId,
+  keyVaultName,
+  keyVaultResourceGroup,
+  clientCertificateUrl,
+  clientCertificateThumbprint,
   diskEncryptionKeyVaultId,
   diskEncryptionKeyVaultUrl;
 
@@ -88,6 +104,10 @@ describe('arm', function () {
         adServicePrincipalAppId = process.env.ADE_ADSP_APPID;
 
         // key vault 
+        keyVaultName = process.env.ADE_KV_NAME;
+        keyVaultResourceGroup = process.env.ADE_RG_NAME;
+        clientCertificateUrl = process.env.ADE_KV_CERT_SID;
+        clientCertificateThumbprint = process.env.ADE_KV_CERT_THUMB;
         diskEncryptionKeyVaultId = process.env.ADE_KV_ID;
         diskEncryptionKeyVaultUrl = process.env.ADE_KV_URL;
 
@@ -133,27 +153,46 @@ describe('arm', function () {
     }
 
     describe('vm', function () {
-      it('should VmQuickCreateWindows-EncryptUsingClientSecret-GetStatusEncrypted', function (done) {
+      it('should VmQuickCreateWindows-EncryptUsingClientSecretTemplate-GetStatusEncrypted', function (done) {
         this.timeout(vmTest.timeoutLarge * 10);
-        // quick create vm
+        // quick create windows vm
         var cmd = util.format('vm quick-create -vv --resource-group %s --name %s --admin-username %s --admin-password %s --location %s --os-type Windows --image-urn %s', groupName, vmName, adminUsername, adminPassword, testLocation, imageUrn).split(' ');
         testUtils.executeCommand(suite, retry, cmd, function(result) {
-          result.exitStatus.should.equal(0);
-
-          // encrypt os drive 
-          var cmd = util.format('vm enable-disk-encryption --resource-group %s --name %s --aad-client-id %s --aad-client-secret %s --disk-encryption-key-vault-url %s --disk-encryption-key-vault-id %s --volume-type All --quiet --json', groupName, vmName, adServicePrincipalAppId, adAppClientSecret,diskEncryptionKeyVaultUrl, diskEncryptionKeyVaultId).split(' ');
-          testUtils.executeCommand(suite, retry, cmd, function(result) {
             result.exitStatus.should.equal(0);
 
-            // get status 
-            var cmd = util.format('vm show-disk-encryption-status --resource-group %s --name %s --subscription %s --json', groupName, vmName, subscriptionId).split(' ');
+            // encrypt using client certificate arm template
+            var encryptUri = 'https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/201-encrypt-running-windows-vm/azuredeploy.json';
+            var encryptParams = util.format('{"vmName"="%s","aadClientID"="%s","aadClientSecret"="%s","keyVaultName"="%s","keyVaultResourceGroup"="%s"}',vmName,aadClientID,aadClientSecret,keyVaultName,keyVaultResourceGroup);
+            var encryptDeploymentName = suite.generateId('encdep', null);
+            var cmd = util.format('group deployment create --resource-group %s --template-uri %s --parameters %s --name %s --subscription %s --quiet', groupName, encryptUri, encryptParams, encryptDeploymentName, subscriptionId).split(' ');
             testUtils.executeCommand(suite, retry, cmd, function(result) {
-              result.exitStatus.should.equal(0);
-              should(result.text.toLowerCase().indexOf('encrypted') > -1).ok;
-              done();
+                result.exitStatus.should.equal(0);
+
+                // get status encrypted
+                var cmd = util.format('vm show-disk-encryption-status --resource-group %s --name %s --subscription %s --json', groupName, vmName, subscriptionId).split(' ');
+                testUtils.executeCommand(suite, retry, cmd, function(result) {
+                    result.exitStatus.should.equal(0);
+                    should(result.text.toLowerCase().indexOf('encrypted') > -1).ok;
+                
+                    // decrypt using client certificate arm template
+                    var decryptUri = 'https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/201-decrypt-running-windows-vm/azuredeploy.json';
+                    var decryptParams = util.format('{"vmName"="%s"}',vmName);
+                    decryptDeploymentName = suite.generateId('decdep', null);
+                    var cmd = util.format('group deployment create --resource-group %s --template-uri %s --parameters %s --name %s --subscription %s --quiet', groupName, decryptUri, decryptParams, decryptDeploymentName, subscriptionId).split(' ');
+                    testUtils.executeCommand(suite, retry, cmd, function(result) {
+                        result.exitStatus.should.equal(0);
+
+                        // get status decrypted
+                        var cmd = util.format('vm show-disk-encryption-status --resource-group %s --name %s --subscription %s --json', groupName, vmName, subscriptionId).split(' ');
+                        testUtils.executeCommand(suite, retry, cmd, function(result) {
+                            result.exitStatus.should.equal(0);
+                            should(result.text.toLowerCase().indexOf('notencrypted') > -1).ok;   
+                            done();
+                        });
+                    });
+                });
             });
-          });
-        });
+        });                   
       });
     });
   });

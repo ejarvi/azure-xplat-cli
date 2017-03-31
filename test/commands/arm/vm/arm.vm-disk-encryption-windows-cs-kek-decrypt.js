@@ -36,6 +36,9 @@ var requiredEnvironment = [{
 }, {
   name: 'ADE_ADAPP_SECRET',
   defaultValue: ''
+}, { 
+  name : 'ADE_KEK_URL',
+  defaultValue: ''
 }, {
   name: 'ADE_ADSP_APPID',
   defaultValue: ''
@@ -48,7 +51,7 @@ var requiredEnvironment = [{
 }];
 
 var testLocation,
-  testprefix = 'arm-cli-vm-disk-encryption-windows',
+  testprefix = 'arm-cli-vm-disk-encryption-windows-cs-kek-decrypt',
   groupPrefix = 'xplatTestRG',
   groupName,
   vmPrefix = 'xplatTestVM',
@@ -63,6 +66,8 @@ var testLocation,
   adServicePrincipalAppId,
 
   subscriptionId,
+  keyEncryptionKeyUrl,
+  keyEncryptionKeyVaultId,
   diskEncryptionKeyVaultId,
   diskEncryptionKeyVaultUrl;
 
@@ -88,6 +93,8 @@ describe('arm', function () {
         adServicePrincipalAppId = process.env.ADE_ADSP_APPID;
 
         // key vault 
+        keyEncryptionKeyUrl = process.env.ADE_KEK_URL;
+        keyEncryptionKeyVaultId = process.env.ADE_KV_ID;
         diskEncryptionKeyVaultId = process.env.ADE_KV_ID;
         diskEncryptionKeyVaultUrl = process.env.ADE_KV_URL;
 
@@ -133,27 +140,33 @@ describe('arm', function () {
     }
 
     describe('vm', function () {
-      it('should VmQuickCreateWindows-EncryptUsingClientSecret-GetStatusEncrypted', function (done) {
+      it('should VmQuickCreateWindows-EncryptUsingClientSecretWithKek-GetStatusEncrypted-Decrypt', function (done) {
         this.timeout(vmTest.timeoutLarge * 10);
-        // quick create vm
+        // quick create windows vm
         var cmd = util.format('vm quick-create -vv --resource-group %s --name %s --admin-username %s --admin-password %s --location %s --os-type Windows --image-urn %s', groupName, vmName, adminUsername, adminPassword, testLocation, imageUrn).split(' ');
         testUtils.executeCommand(suite, retry, cmd, function(result) {
           result.exitStatus.should.equal(0);
 
-          // encrypt os drive 
-          var cmd = util.format('vm enable-disk-encryption --resource-group %s --name %s --aad-client-id %s --aad-client-secret %s --disk-encryption-key-vault-url %s --disk-encryption-key-vault-id %s --volume-type All --quiet --json', groupName, vmName, adServicePrincipalAppId, adAppClientSecret,diskEncryptionKeyVaultUrl, diskEncryptionKeyVaultId).split(' ');
+          // encrypt using client secret with key encryption key 
+          var cmd = util.format('vm enable-disk-encryption --resource-group %s --name %s --aad-client-id %s --aad-client-secret %s --disk-encryption-key-vault-url %s --disk-encryption-key-vault-id %s --key-encryption-key-url %s --key-encryption-key-vault-id %s --volume-type All --quiet --json', groupName, vmName, adServicePrincipalAppId, adAppClientSecret,diskEncryptionKeyVaultUrl, diskEncryptionKeyVaultId, keyEncryptionKeyUrl, keyEncryptionKeyVaultId).split(' ');
           testUtils.executeCommand(suite, retry, cmd, function(result) {
             result.exitStatus.should.equal(0);
 
-            // get status 
+            // get status encrypted
             var cmd = util.format('vm show-disk-encryption-status --resource-group %s --name %s --subscription %s --json', groupName, vmName, subscriptionId).split(' ');
             testUtils.executeCommand(suite, retry, cmd, function(result) {
               result.exitStatus.should.equal(0);
               should(result.text.toLowerCase().indexOf('encrypted') > -1).ok;
-              done();
+              
+              // disable encryption
+              var cmd = util.format('vm disable-disk-encryption --resource-group %s --name %s --subscription %s --volume-type All --quiet --json', groupName, vmName, subscriptionId).split(' ');
+              testUtils.executeCommand(suite, retry, cmd, function(result) {
+                result.exitStatus.should.equal(0);      
+                done();
+              });
             });
           });
-        });
+        });                   
       });
     });
   });
