@@ -371,20 +371,38 @@ _.extend(NetworkTestUtil.prototype, {
   },
   createTrafficManagerProfile: function (profileProp, suite, callback) {
     var cmd = util.format('network traffic-manager profile create -g {group} -n {name} -u {profileStatus} -m {trafficRoutingMethod} ' +
-      '-r {relativeDnsName} -l {ttl} -p {monitorProtocol} -o {monitorPort} -a {monitorPath} -t {tags} --json').formatArgs(profileProp);
+      '-r {relativeDnsName} -l {ttl} -p {monitorProtocol} -o {monitorPort} -a {monitorPath} ' +
+      '-e {intervalInSeconds} -f {toleratedNumberOfFailures} -i {timeoutInSeconds} -t {tags} --json').formatArgs(profileProp);
 
     testUtils.executeCommand(suite, retry, cmd, function (result) {
       result.exitStatus.should.equal(0);
       var profile = JSON.parse(result.text);
+
       profile.name.should.equal(profileProp.name);
-      profile.properties.profileStatus.should.equal(profileProp.profileStatus);
-      profile.properties.trafficRoutingMethod.should.equal(profileProp.trafficRoutingMethod);
-      profile.properties.dnsConfig.relativeName.should.equal(profileProp.relativeDnsName);
-      profile.properties.dnsConfig.ttl.should.equal(profileProp.ttl);
-      profile.properties.monitorConfig.protocol.should.equal(profileProp.monitorProtocol);
-      profile.properties.monitorConfig.port.should.equal(profileProp.monitorPort);
-      profile.properties.monitorConfig.path.should.equal(profileProp.monitorPath);
+      profile.profileStatus.should.equal(profileProp.profileStatus);
+      profile.trafficRoutingMethod.should.equal(profileProp.trafficRoutingMethod);
+      
+      profile.dnsConfig.relativeName.should.equal(profileProp.relativeDnsName);
+      profile.dnsConfig.ttl.should.equal(profileProp.ttl);
+
+      profile.monitorConfig.protocol.should.equal(profileProp.monitorProtocol);
+      profile.monitorConfig.port.should.equal(profileProp.monitorPort);
+      profile.monitorConfig.path.should.equal(profileProp.monitorPath);
+      profile.monitorConfig.intervalInSeconds.should.equal(profileProp.intervalInSeconds);
+      profile.monitorConfig.toleratedNumberOfFailures.should.equal(profileProp.toleratedNumberOfFailures);
+      profile.monitorConfig.timeoutInSeconds.should.equal(profileProp.timeoutInSeconds);
+      
       callback(profile);
+    });
+  },
+  getAppGateway: function(gatewayProp, suite, callback) {
+    var cmd = 'network application-gateway show {group} {name} --json'.formatArgs(gatewayProp);
+    testUtils.executeCommand(suite, retry, cmd, function (result) {
+      result.exitStatus.should.equal(0);
+      var appGateway = JSON.parse(result.text);
+      appGateway.name.should.equal(gatewayProp.name);
+      appGateway.location.should.equal(gatewayProp.location);
+      callback(appGateway);
     });
   },
   stopAppGateway: function(gatewayProps, suite, callback) {

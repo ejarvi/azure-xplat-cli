@@ -1,3 +1,125 @@
+##2017-07-10 Version 0.10.15
+* General
+  * Fix for cloud console: fill in isMRRT field when being invoked with raw tokens. #3614
+  * Upgraded ms-rest and ms-rest-azure runtime dependencies to their latest version. #3627, #3634
+  * Updated Windows Installer infrastructure code to consume a more recent and stable npm version. #3629
+* Graph-RBAC
+  * Added logic to validate the scope before sending request to ARM. #3628
+* Network
+  * Updated azure-arm-network dependency to its latest version. #3635
+  * Public IP. #3619
+    * Added support for VMSS PublicIP.
+  * Added new features in Application Gateways. #3633 (Issue #3625)
+    * New subcategory `redirect-config`
+    * Http Settings
+      * New parameters `--host-name`, `--pick-host-name`, `--affinity-cookie-name`, `--probe-enabled`, `--path`
+    * Probes
+      * New parameters `--pick-host-name`, `--min-servers`, `--health-response-body`, `--status-codes`
+      * Parameter `--host-name` is now optional
+    * Rules
+      * New parameters `--redirect-configuration-name`, `--redirect-configuration-id`
+    * Ssl Policies
+      * New parameters `--policy-type`, `--policy-name`, `--cipher-suites`, `--min-protocol-version`
+      * New command `list-available`
+      * New subcategory `predefined` with two commands: `list` and `show`
+    * Url Path Maps
+      * New parameters `--default-redirect-configuration-id`, `--default-redirect-configuration-name`
+      * Url Path Maps Rules
+        * New parameter `--redirect-configuration-name`
+        * Parameters `--http-settings-name` and `--address-pool-name` are now optional
+
+##2017-06-08 Version 0.10.14
+* General
+  * Fixed bug #3605 by updating easy table package dependency. This ensures this application works well with npm@5. #3608
+* Compute (ARM)
+  * Updated Compute Package to 2.0.0-preview with new API version. #3599
+  * Updated Compute Package to version 3.0.0-preview & updated commands. #3603
+* Compute (ASM)
+  * Added ASM Compute VM Commands: Delete/Redeploy/Start/Restart/GetRDP/Show. #3607
+* Network
+  * Rewrote implementation for ExpressRoute Circuit Peerings. #3601
+  * Application Gateway. #3604
+    * Added support for Disabled Rule Groups to WAF Config
+    * Added support for Path Based Routing to Request Routing Rules
+  * Traffic Manager. #3589
+    * Rewrote implementation for Traffic Manager
+    * Added support for API version 2017-05-01 (Fast Endpoint Failover)
+  * Network Interfaces. #3609
+    * Added support for EnableAcceleratedNetworking
+  * Added vnet usage feature support #3602
+* Graph-RBAC
+  * upgraded to new package version
+  * Fixed bug in role assignment command (Issue Azure/azure-powershell#3407). #3585
+  * Updated getobjectsbyobjectId call for objectIds > 1000, since the API limits only 1000 objectIds. #3594
+* IotHub
+  * Added Routing Support for IotHub. #3590
+* Mobile Services
+  * Removed "Azure Mobile" commands. #3598
+* Web
+  * Updated kuduscript package. #3581
+
+##2017-05-10 Version 0.10.13
+* General
+  * login: allow accesstokens.json to be configurable through env var #3552
+  * Standardize User Agent string in request header (Issue #3565). #3578
+* Compute
+  * Fixed help text for 'azure vm image show' (Issue #3548). #3563
+  * Chef Extension
+    * Renamed chef-service-interval option to chef-daemon-interval #3566
+* Storage
+  * Added support for large page blob (8TB) #3572
+* Batch
+  * Fixed confirmation string when removing nodes from Batch pool. #3570
+* Network
+  * Improved Network DNS Zone Import's data validation #3569
+  * Rewrote implementation for NIC (#3568), VPN Gateway (#3567), Local Gateway (#3576), Application Gateway (#3577), Express Routes (#3579).
+
+##2017-04-05 Version 0.10.12
+* Storage
+  * Upgraded azure-storage to 2.1.0 #3544
+  * Added --incremental parameter to azure storage blob copy start command to support page blob incremental copy #3544
+* General
+  * fixed sinon.stub warnings by changing to the new signature #3547
+  * Handled the os.networkInterfaces() exception thrown while getting the host nic on win10 bash subsystem
+* TrafficManager
+  * Added api-version=2017-03-01 #3543
+  * Added geo mapping for endpoints #3543
+* Compute (ASM)
+  * Added new CLI command "initiate-maintenance" for a new API called "PerformMaintenance" #3542
+  * Added MaintenanceStatus field in the GetDeployment response #3542
+
+##2017-03-14 Version 0.10.11 (npm only - hotfix)
+* General
+  * Added a SHA-256 hash of macAddress to userAgent header, per VS Telemetry standard #3520
+* Datalake
+  * Fixed bug with ADLA create credential not properly binding credentialName parameter #3533
+* CDN
+  * Added enable/disable https in CDN custom domain #3519
+ 
+##2017-02-22 Version 0.10.10 (npm only - hotfix)
+* General
+  * Fixed a bug with appveyor integration. #3493
+  * Added auto completion for fish shell. #3509
+* Compute
+  * Fixed issue of not being able to quick create a VM from a user image (Issue #3499). #3499
+  * Added optional --storage-account-name parameter to vm quick-create. #3499
+  * Fixed bug #3503 in managed disk scenario by adding a --skip-vm-backup option to the enable-encryption command #3504
+  * Chef Extension
+    * Added support for passing daemon as task. #3516
+* KeyVault
+  * Fixed bug #3444. Made CLI not prompt for parameter value if keyvault reference is included. #3488
+* Network
+  * Implemented commands for Network watcher #3494
+  * Fixed bug #2167 by adding multi-site support for app gateways (host name option). #3515
+* Storage
+  * Updated azure-storage module to 2.0.0 #3455
+  * Added support for large block blob #3455
+  * Added support for `file` for the `--enable-encryption-service` and `--disable-encryption-service` for commands  `azure storage account create` and `azure storage account set`. #3496
+  * Added `--prefix` option for command `azure storage file list`. #3496
+  * Updated the implementation for commands `azure storage container list` and `azure storage container show` to save unnecessary extra service call. #3496
+* Web
+  * Updated kuduscript package. #3479
+
 ##2017-02-08 Version 0.10.9
 * General
   * Improved error message in the CLI about command not being valid (Fixes #3272, #3256, #3245). #3424

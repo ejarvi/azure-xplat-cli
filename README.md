@@ -1,4 +1,4 @@
-# Microsoft Azure Xplat-CLI for Windows, Mac and Linux
+﻿# Microsoft Azure Xplat-CLI for Windows, Mac and Linux
 
 [![NPM version](https://badge.fury.io/js/azure-cli.png)](http://badge.fury.io/js/azure-cli) [![Build Status](https://travis-ci.org/Azure/azure-xplat-cli.png?branch=master)](https://travis-ci.org/Azure/azure-xplat-cli)
 
@@ -12,7 +12,6 @@ This project provides a cross-platform command line interface for developers and
   * Websites
   * Virtual machines
   * Network
-  * Mobile Services
   * Service Bus
   * SQL Database
 * Azure Resource Management
@@ -45,7 +44,9 @@ Please take a look at the list of supported environment variables over [here](ht
 - Uninstall the previously installed CLI
    - If you installed via MSI, then uninstall the windows MSI. For mac installer `sudo azure-uninstall -g`
    - If you installed via npm then execute: `npm uninstall -g azure-cli`
-- Clear the global cache: `npm cache clear –g`
+- Clear the global cache: 
+   - If npm4.0 or before: `npm cache clear -g`
+   - If npm5.0 or greater `npm cache verify`
 - Delete the .streamline folder from the User’s home profile `C:\Users\<username>\.streamline` | `~/.streamline`, if present.
 - Download the tarball from this link: `https://github.com/Azure/azure-xplat-cli/archive/<branch-name>.tar.gz`
 - Install from the tarball: `npm install –g <path to the downloaded tarball>`
