@@ -132,30 +132,34 @@ describe('arm', function () {
         suite.execute('vm quick-create -vv --resource-group %s --name %s --admin-username %s --location %s --os-type Linux --image-urn %s --ssh-publickey-file %s', groupName, vmName, adminUsername, testLocation, imageUrn, sshPublicKeyFile, function (result) {
           result.exitStatus.should.equal(0);
           // get id of nic from newly created vm 
-          vm = JSON.parse(result.text);
-          nicName = vm.networkProfile.networkInterfaces[0].id.split('/').pop();          
-          // create nsg with restricted template
-          var nsgName = groupName + "NSG";
-          var depName = nsgName + "Dep"
-          var nsgTemplateParams = {
-            "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
-            "contentVersion": "1.0.0.0",
-            "parameters": {
-                "networkSecurityGroupName": {
-                    "value": nsgName
-                },
-                "location": {
-                    "value": testLocation
-                }
-            }
-          }
-          nsgParamString = JSON.stringify(nsgTemplateParams).replace(/\"/g,"'");
-          suite.execute('group deployment create --resource-group %s --name %s --template-uri %s --parameters "%s"', groupName, depName, nsgTemplateUri, nsgParamString, function (result) {   
+          suite.execute('vm show --resource-group %s --name %s --json', groupName, vmName, function (result) {
             result.exitStatus.should.equal(0);
-            // associate nic with newly created NSG   
-            suite.execute('network nic set --resource-group %s --name %s --network-security-group-name %s --json', groupName, nicName, nsgName, function (result) {
+            vm = JSON.parse(result.text);
+            nicName = vm.networkProfile.networkInterfaces[0].id.split('/').pop();          
+            // prepare parameters required to create nsg via template 
+            var nsgName = groupName + "NSG";
+            var depName = nsgName + "Dep"
+            var nsgTemplateParams = {
+              "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+              "contentVersion": "1.0.0.0",
+              "parameters": {
+                  "networkSecurityGroupName": {
+                      "value": nsgName
+                  },
+                  "location": {
+                      "value": testLocation
+                  }
+              }
+            }
+            nsgParamString = JSON.stringify(nsgTemplateParams).replace(/\"/g,"'");
+            // create nsg via template 
+            suite.execute('group deployment create --resource-group %s --name %s --template-uri %s --parameters "%s"', groupName, depName, nsgTemplateUri, nsgParamString, function (result) {   
               result.exitStatus.should.equal(0);
-              done();
+              // associate nic of VM with newly created NSG   
+              suite.execute('network nic set --resource-group %s --name %s --network-security-group-name %s --json', groupName, nicName, nsgName, function (result) {
+                result.exitStatus.should.equal(0);
+                done();
+              });
             });
           });
         });
