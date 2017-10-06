@@ -151,7 +151,7 @@ describe('arm', function () {
                   }
               }
             }
-            nsgParamString = JSON.stringify(nsgTemplateParams).replace(/\"/g,"'");
+            var nsgParamString = JSON.stringify(nsgTemplateParams).replace(/\"/g,"'");
             // create nsg via template 
             suite.execute('group deployment create --resource-group %s --name %s --template-uri %s --parameters "%s"', groupName, depName, nsgTemplateUri, nsgParamString, function (result) {   
               result.exitStatus.should.equal(0);
