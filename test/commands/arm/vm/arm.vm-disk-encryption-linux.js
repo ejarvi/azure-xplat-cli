@@ -135,7 +135,7 @@ describe('arm', function () {
           suite.execute('vm show --resource-group %s --name %s --json', groupName, vmName, function (result) {
             result.exitStatus.should.equal(0);
             var vmInfo = JSON.parse(result.text);
-            nicName = vmInfo.networkProfile.networkInterfaces[0].id.split('/').pop();          
+            var nicName = vmInfo.networkProfile.networkInterfaces[0].id.split('/').pop();          
             // prepare parameters required to create nsg via template 
             var nsgName = groupName + "NSG";
             var depName = nsgName + "Dep"
