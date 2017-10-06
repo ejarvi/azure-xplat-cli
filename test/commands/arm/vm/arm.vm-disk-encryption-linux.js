@@ -134,8 +134,8 @@ describe('arm', function () {
           // get id of nic from newly created vm 
           suite.execute('vm show --resource-group %s --name %s --json', groupName, vmName, function (result) {
             result.exitStatus.should.equal(0);
-            vm = JSON.parse(result.text);
-            nicName = vm.networkProfile.networkInterfaces[0].id.split('/').pop();          
+            var vmInfo = JSON.parse(result.text);
+            nicName = vmInfo.networkProfile.networkInterfaces[0].id.split('/').pop();          
             // prepare parameters required to create nsg via template 
             var nsgName = groupName + "NSG";
             var depName = nsgName + "Dep"
