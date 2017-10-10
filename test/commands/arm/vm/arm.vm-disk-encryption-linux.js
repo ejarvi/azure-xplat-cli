@@ -135,15 +135,18 @@ describe('arm', function () {
           suite.execute('vm show --resource-group %s --name %s --json', groupName, vmName, function (result) {
             result.exitStatus.should.equal(0);
             var vmInfo = JSON.parse(result.text);
-            var nicName = vmInfo.networkProfile.networkInterfaces[0].id.split('/').pop();          
+            var nicName = vmInfo.networkProfile.networkInterfaces[0].id.split('/').pop();
             // prepare parameters required to create nsg via template 
             var nsgName = groupName + "NSG";
             var depName = nsgName + "Dep";
-			var nsgParamString = "\"{\\\"networkSecurityGroupName\\\":{\\\"value\\\":\\\"" + nsgName + "\\\"},\\\"location\\\":{\\\"value\\\":\\\"" + testLocation + "\\\"}}}\"";
+            var nsgParamString = '{"networkSecurityGroupName":{"value":"' + nsgName + '"},"location":{"value":"' + testLocation + '"}}';
+            var nsgParamFileName = '/tmp/' + depName + 'params.json';
+            var nsgParamFile = fs.openSync(nsgParamFileName, 'w');
+            fs.writeSync(nsgParamFile,nsgParamString);
             // create nsg via template 
-            suite.execute('group deployment create --resource-group %s --name %s --template-uri %s --parameters %s', groupName, depName, nsgTemplateUri, nsgParamString, function (result) {   
+            suite.execute("group deployment create --resource-group %s --name %s --template-uri %s --parameters-file %s --json", groupName, depName, nsgTemplateUri, nsgParamFileName, function (result) {  
               result.exitStatus.should.equal(0);
-              // associate nic of VM with newly created NSG   
+              // associate nic of VM with newly created NSG
               suite.execute('network nic set --resource-group %s --name %s --network-security-group-name %s --json', groupName, nicName, nsgName, function (result) {
                 result.exitStatus.should.equal(0);
                 done();
